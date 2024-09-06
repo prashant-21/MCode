@@ -1,0 +1,28 @@
+let
+    // Function to get column statistics from a source table
+    GetColumnStats = (SourceTable as table) as table =>
+    let
+        // Get the schema of the source table, which includes column names and data types
+        SchemaTable = Table.Schema(SourceTable),
+        
+        // Get the list of column names from the source table
+        ColumnNames = Table.ColumnNames(SourceTable),
+        
+        // Get the total number of rows in the source table
+        RowCount = Table.RowCount(SourceTable),
+        
+        // Transform the list of column names to a list of records with column statistics
+        ColumnStats = List.Transform(ColumnNames, each [
+            ColumnName = _, // Column name
+            DataType = SchemaTable{[Name = _]}[Kind], // Data type of the column
+            RowCount = RowCount, // Total number of rows in the table
+            ErrorCount = Table.RowCount(Table.SelectRowsWithErrors(Table.SelectColumns(SourceTable, {_}))), // Count of rows with errors in the column
+            EmptyCount = List.Count(List.Select(Table.Column(SourceTable, _), each _ = null or _ = "")) // Count of empty values in the column
+        ]),
+        
+        // Convert the list of records to a table
+        Result = Table.FromRecords(ColumnStats)
+    in
+        Result
+in
+    GetColumnStats
