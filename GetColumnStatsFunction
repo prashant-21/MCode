@@ -26,3 +26,29 @@ let
         Result
 in
     GetColumnStats
+
+/*
+Sample Example:
+
+Assume you have a table named `SalesData` with the following columns and data:
+
+| ProductID | ProductName | Quantity | Price | Discount |
+|-----------|-------------|----------|-------|----------|
+| 1         | Apple       | 10       | 1.5   | 0.1      |
+| 2         | Banana      | 20       | 0.5   | null     |
+| 3         | Cherry      | null     | 2.0   | 0.2      |
+| 4         | Date        | 15       | Error | 0.3      |
+| 5         | Error       | 25       | 1.0   | 0.0      |
+
+When you apply the `GetColumnStats` function to `SalesData`, it will return a table with the following statistics:
+
+| ColumnName  | DataType | RowCount | ErrorCount | EmptyCount |
+|-------------|----------|----------|------------|------------|
+| ProductID   | Int64.Type| 5        | 1          | 0          |
+| ProductName | Text.Type | 5        | 0          | 0          |
+| Quantity    | Int64.Type| 5        | 0          | 1          |
+| Price       | Number.Type| 5       | 1          | 0          |
+| Discount    | Number.Type| 5       | 0          | 1          |
+
+This table provides a summary of each column's name, data type, total number of rows, count of rows with errors, and count of empty values.
+*/
