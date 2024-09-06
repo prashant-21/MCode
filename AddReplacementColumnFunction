@@ -1,0 +1,58 @@
+// Function to add a column with bulk text replacements
+// Parameters:
+// - inputTable: The table to which the new column will be added
+// - newColumnName: The name of the new column to be added
+// - initialColumn: The name of the column containing the initial text to be processed
+// - Replacements: A table containing 'Find' and 'Replace' columns for the text replacements
+// Returns:
+// - A table with the new column added, containing the processed text
+
+let
+    AddReplacementColumn = (inputTable as table, newColumnName as text, initialColumn as text, Replacements as table) as table =>
+    let
+        // Add the new column with the processed text
+        resultTable = Table.AddColumn(
+            inputTable, 
+            newColumnName, 
+            each List.Accumulate(
+                {0..Table.RowCount(Replacements)-1}, 
+                Record.Field(_, initialColumn), 
+                (state, current) => Text.Replace(state, Replacements[Find]{current}, Replacements[Replace]{current})
+            )
+        )
+    in
+        resultTable
+in
+    AddReplacementColumn
+
+// Explanation:
+// 1. Function Name: `AddReplacementColumn` - This name clearly indicates the function's purpose.
+// 2. Parameters:
+//    - `inputTable`: The table to which the new column will be added.
+//    - `newColumnName`: The name of the new column to be added.
+//    - `initialColumn`: The name of the column containing the initial text to be processed.
+//    - `Replacements`: A table containing 'Find' and 'Replace' columns for the text replacements.
+// 3. Table.AddColumn: This function adds a new column to `inputTable`. The new column's name is specified by `newColumnName`.
+// 4. List.Accumulate: This function iterates over the range `{0..Table.RowCount(Replacements)-1}` and applies the `Text.Replace` function for each row in the `Replacements` table.
+//    - Range: `{0..Table.RowCount(Replacements)-1}` generates a list of indices from 0 to the number of rows in `Replacements` minus one.
+//    - Initial State: `Record.Field(_, initialColumn)` retrieves the value from the `initialColumn` for the current row.
+//    - Accumulator Function: `(state, current) => Text.Replace(state, Replacements[Find]{current}, Replacements[Replace]{current})` replaces occurrences of `Replacements[Find]{current}` with `Replacements[Replace]{current}` in the `state`.
+// 5. Result: The final result is a table with the new column added, containing the processed text.
+
+// Sample Example:
+// Assuming we have the following input table and replacements table:
+// inputTable = #table({"ID", "Size2.F"}, {{1, "Large"}, {2, "Medium"}, {3, "Small"}})
+// Replacements = #table({"Find", "Replace"}, {{"Large", "L"}, {"Medium", "M"}, {"Small", "S"}})
+// Calling the function:
+// AddReplacementColumn(inputTable, "Size2", "Size2.F", Replacements)
+// The result will be a table with an additional column "Size2" containing the values {"L", "M", "S"}.
+
+// Explanation of the Sample Example:
+// 1. Input Table:
+//    - `inputTable` has columns `ID` and `Size2.F` with values `{"Large", "Medium", "Small"}`.
+// 2. Replacements Table:
+//    - `Replacements` has columns `Find` and `Replace` with pairs `{"Large", "L"}`, `{"Medium", "M"}`, and `{"Small", "S"}`.
+// 3. Function Call:
+//    - `AddReplacementColumn(inputTable, "Size2", "Size2.F", Replacements)` will add a new column `Size2` to `inputTable`.
+// 4. Result:
+//    - The resulting table will have an additional column `Size2` with the values `{"L", "M", "S"}`.
