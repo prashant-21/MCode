@@ -1,0 +1,18 @@
+// Function to rename columns headin a table
+// Parameters:
+// - SelectTable: The table in which columns need to be renamed
+// - RenameTable: A table containing 'OldName' and 'NewName' columns for renaming
+// Returns:
+// - A table with renamed columns, ignoring any missing fields
+
+let
+    RenameColumnsFunction = (SelectTable as table, RenameTable as table) as table =>
+    let
+        // Create a list of old and new column names
+        OldNewNames = List.Zip({RenameTable[OldName], RenameTable[NewName]}),
+        // Rename columns in the table
+        RenamedTable = Table.RenameColumns(SelectTable, OldNewNames, MissingField.Ignore)
+    in
+        RenamedTable
+in
+    RenameColumnsFunction
