@@ -1,0 +1,27 @@
+//Documentation
+//Purpose: This code is designed to import data from a specified sheet in an Excel workbook. It retrieves the file path and file name from named ranges in the current workbook, loads the workbook, and extracts the data from the specified sheet.
+
+//Steps:
+
+//Retrieve File Path: The FilePath variable gets the file path from the named range “FilePath” in the current workbook.
+//Retrieve File Name: The FileName variable gets the file name from the named range “FileName” in the current workbook.
+//Load Workbook: The Source variable loads the Excel workbook using the combined file path and file name.
+//Extract Data: The SheetData variable extracts the data from the specified sheet in the workbook.
+//Usage: This code can be used in Power Query to dynamically load data from different Excel files and sheets based on the specified file path and file name.
+
+
+
+let
+    // Retrieve the file path from the named range "FilePath" in the current workbook
+    FilePath = Excel.CurrentWorkbook(){[Name="FilePath"]}[Content]{0}[Column1],
+
+    // Retrieve the file name from the named range "FileName" in the current workbook
+    FileName = Excel.CurrentWorkbook(){[Name="FileName"]}[Content]{0}[Column1],
+
+    // Load the Excel workbook using the combined file path and file name
+    Source = Excel.Workbook(File.Contents(FilePath & FileName & ".xlsx"), null, true),
+
+    // Extract the data from the specified sheet in the workbook
+    SheetData = Source{[Item=FileName, Kind="Sheet"]}[Data]
+in
+    SheetData
