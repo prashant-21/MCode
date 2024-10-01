@@ -1,0 +1,44 @@
+let
+    // Nested query to create and process the ReplacementTable
+    ReplacementTable = let
+        // Create a table with the provided data
+        Source = Table.FromRecords({
+            [Replace = 0.5, Find = "1/2"],
+            [Replace = 0.75, Find = "3/4"],
+            [Replace = 1.25, Find = "1 1/4"],
+            [Replace = 1.5, Find = "1 1/2"],
+            [Replace = 2.5, Find = "2 1/2"],
+            [Replace = 0.25, Find = "1/4"],
+            [Replace = 0.375, Find = "3/8"],
+            [Replace = 2.5, Find = "2-1/2"],
+            [Replace = 1.5, Find = "1-1/2"]
+        }),
+        
+        // Ensure the data type of "Find" and "Replace" columns are text
+        ChangedType = Table.TransformColumnTypes(Source, {{"Replace", type text}, {"Find", type text}}),
+        
+        // Sort rows by the "Replace" column in descending order
+        SortedTable = Table.Sort(ChangedType, {{"Replace", Order.Descending}})
+    in
+        SortedTable,
+
+    // Sample table to demonstrate the replacement
+    SampleTable = Table.FromRecords({
+        [SizeinFraction = "1/2"],
+        [SizeinFraction = "3/4"],
+        [SizeinFraction = "1 1/4"],
+        [SizeinFraction = "1 1/2"],
+        [SizeinFraction = "2 1/2"]
+    }),
+
+    // Replace the SizeinFraction column values using the ReplacementTable
+    ReplacedTable = Table.TransformColumns(SampleTable, {"SizeinFraction", each List.Accumulate(
+        {0..Table.RowCount(ReplacementTable)-1}, 
+        _, 
+        (state, current) => Text.Replace(state, ReplacementTable[Find]{current}, Text.From(ReplacementTable[Replace]{current}))
+    )}),
+    
+    // Rename the column from SizeinFraction to SizeinInch
+    RenamedColumns = Table.RenameColumns(ReplacedTable, {{"SizeinFraction", "SizeinInch"}})
+in
+    RenamedColumns
