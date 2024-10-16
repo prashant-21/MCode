@@ -1,0 +1,44 @@
+Ranker M Code Documentation
+Overview
+The Ranker M code is designed to rank items within categories based on their quantities. It processes a table of items, categorizes them, and assigns ranks to each item within its category based on the quantity in descending order.
+
+Usage
+Use this M code in Power Query to rank items within their respective categories based on their quantities.
+
+Steps
+Create Source Table: Initializes a table with items, their categories, and quantities.
+Add Index Column: Adds an index column to help with ranking.
+Sort Table: Sorts the table by ItemCategory in ascending order and Quantities in descending order.
+Add Rank Column: Adds a ranking column that assigns ranks to items within each category based on their quantities.
+Remove Index Column: Removes the index column as it is no longer needed.
+
+let
+    // Create a sample table with Items, ItemCategory, and Quantities
+    SourceTable = Table.FromRecords({
+        [Items = "Item1", ItemCategory = "CategoryA", Quantities = 10],
+        [Items = "Item2", ItemCategory = "CategoryA", Quantities = 20],
+        [Items = "Item3", ItemCategory = "CategoryB", Quantities = 15],
+        [Items = "Item4", ItemCategory = "CategoryB", Quantities = 5],
+        [Items = "Item5", ItemCategory = "CategoryA", Quantities = 30],
+        [Items = "Item6", ItemCategory = "CategoryB", Quantities = 25]
+    }),
+    
+    // Add an index column to help with ranking
+    IndexedTable = Table.AddIndexColumn(SourceTable, "Index", 1, 1, Int64.Type),
+    
+    // Sort the table by ItemCategory and Quantities in descending order
+    SortedTable = Table.Sort(IndexedTable, {{"ItemCategory", Order.Ascending}, {"Quantities", Order.Descending}}),
+    
+    // Add a ranking column based on the sorted Quantities within each ItemCategory
+    RankedTable = Table.AddColumn(SortedTable, "Rank", each 
+        let
+            currentCategory = [ItemCategory],
+            currentIndex = [Index]
+        in
+            Table.RowCount(Table.SelectRows(SortedTable, each [ItemCategory] = currentCategory and [Index] <= currentIndex))
+    ),
+    
+    // Remove the Index column as it's no longer needed
+    FinalTable = Table.RemoveColumns(RankedTable, {"Index"})
+in
+    FinalTable
