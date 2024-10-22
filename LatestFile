@@ -1,0 +1,18 @@
+let
+     // Specify the folder path
+    folderPath = "C:\PRASHANT\PRASHANT\1.New folder\Portfolio\Shares\Downloads from Zerodha\TradeBook",
+    
+    // Get the list of files in the folder
+    Source = Folder.Files(folderPath),
+    
+    // Add a custom column to extract the file modification date
+    AddDateColumn = Table.AddColumn(Source, "Date Modified", each DateTime.From([Date modified]), type datetime),
+    
+    // Sort the files by the modification date in descending order
+    SortedTable = Table.Sort(AddDateColumn, {{"Date Modified", Order.Descending}}),
+    
+    // Get the latest file (first row after sorting)
+    LatestFile = Table.FirstN(SortedTable, 1)
+    
+in
+    LatestFile
