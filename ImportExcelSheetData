@@ -1,27 +1,45 @@
-//Documentation
-//Purpose: This code is designed to import data from a specified sheet in an Excel workbook. It retrieves the file path and file name from named ranges in the current workbook, loads the workbook, and extracts the data from the specified sheet.
+//Purpose: This query imports the latest Excel sheet from a specified folder, adds a column with the file's modification date, and outputs the data.
 
-//Steps:
+//Step 1: Retrieve the file path from the named range "FolderPath" in the current workbook.
 
-//Retrieve File Path: The FilePath variable gets the file path from the named range “FilePath” in the current workbook.
-//Retrieve File Name: The FileName variable gets the file name from the named range “FileName” in the current workbook.
-//Load Workbook: The Source variable loads the Excel workbook using the combined file path and file name.
-//Extract Data: The SheetData variable extracts the data from the specified sheet in the workbook.
-//Usage: This code can be used in Power Query to dynamically load data from different Excel files and sheets based on the specified file path and file name.
+//Step 2: Get the list of files in the folder and filter out the current file.
+
+//Step 3: Add a custom column to extract the file modification date and sort the files by modification date.
+
+//Step 4: Get the latest file and construct its path.
+
+//Step 5: Extract the sheet name from the latest file name by removing the ".xlsx" extension.
+
+//Step 6: Import the latest Excel workbook and get the data from the specific sheet.
+
+//Step 7: Add the "DataSourceDate" column with the modified date in "dd-mm-yy" format and set its type to date.
 
 
 
 let
-    // Retrieve the file path from the named range "FilePath" in the current workbook
-    FilePath = Excel.CurrentWorkbook(){[Name="FilePath"]}[Content]{0}[Column1],
+    // Retrieve the file path from the named range "FolderPath" in the current workbook
+    FolderPath = Excel.CurrentWorkbook(){[Name="FolderPath"]}[Content]{0}[Column1],
+    
+    // Get the list of files in the folder and filter out the current file
+    Source = Folder.Files(FolderPath),
+    CurrentWorkbookName = Text.BeforeDelimiter(FolderPath, ".xlsx"),
+    FilteredFiles = Table.SelectRows(Source, each Text.BeforeDelimiter([Name], ".") <> CurrentWorkbookName),
+    
+    // Add a custom column to extract the file modification date and sort by modification date
+    AddDateColumn = Table.AddColumn(FilteredFiles, "Date_Modified", each DateTime.From([#"Date modified"]), type datetime),
+    SortedTable = Table.Sort(AddDateColumn, {{"Date_Modified", Order.Descending}}),
+    
+    // Get the latest file and its path
+    LatestFile = Table.FirstN(SortedTable, 1),
+    LatestFilePath = FolderPath & "\" & LatestFile{0}[Name],
+    
+    // Extract the sheet name from the latest file name
+    SheetName = Text.BeforeDelimiter(LatestFile{0}[Name], ".xlsx"),
+    
+    // Import the latest Excel workbook and get the specific sheet data
+    SheetData = Excel.Workbook(File.Contents(LatestFilePath)){[Item=SheetName, Kind="Sheet"]}[Data],
 
-    // Retrieve the file name from the named range "FileName" in the current workbook
-    FileName = Excel.CurrentWorkbook(){[Name="FileName"]}[Content]{0}[Column1],
-
-    // Load the Excel workbook using the combined file path and file name
-    Source = Excel.Workbook(File.Contents(FilePath & FileName & ".xlsx"), null, true),
-
-    // Extract the data from the specified sheet in the workbook
-    SheetData = Source{[Item=FileName, Kind="Sheet"]}[Data]
+    // Add the "DateSourcedate" column with the modified date in "dd-mm-yy" format and change type
+    AddDateSourcedate = Table.AddColumn(SheetData, "DataSourceDate", each Date.ToText(DateTime.Date(LatestFile{0}[#"Date modified"]), "dd-MM-yy"), type date)
 in
-    SheetData
+    AddDateSourcedate
