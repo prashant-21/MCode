@@ -1,4 +1,4 @@
-//Purpose: This query imports the latest Excel sheet from a specified folder, adds a column with the file's modification date, and outputs the data.
+// Purpose: This query imports the latest Excel sheet from a specified folder, promotes headers, adds a column with the file's modification date, and outputs the data.
 
 //Step 1: Retrieve the file path from the named range "FolderPath" in the current workbook.
 
@@ -17,31 +17,35 @@
 
 
 let
-    // Retrieve the file path from the named range "FolderPath" in the current workbook
+    
+
+    // Step 1: Retrieve the file path from the named range "FolderPath" in the current workbook
     FolderPath = Excel.CurrentWorkbook(){[Name="FolderPath"]}[Content]{0}[Column1],
     
-    // Get the list of files in the folder and filter out the current file
+    // Step 2: Get the list of files in the folder and filter out the current file
     Source = Folder.Files(FolderPath),
     CurrentWorkbookName = Text.BeforeDelimiter(FolderPath, ".xlsx"),
     FilteredFiles = Table.SelectRows(Source, each Text.BeforeDelimiter([Name], ".") <> CurrentWorkbookName),
     
-    // Add a custom column to extract the file modification date and sort by modification date
+    // Step 3: Add a custom column to extract the file modification date and sort by modification date
     AddDateColumn = Table.AddColumn(FilteredFiles, "Date_Modified", each DateTime.From([#"Date modified"]), type datetime),
     SortedTable = Table.Sort(AddDateColumn, {{"Date_Modified", Order.Descending}}),
     
-    // Get the latest file and its path
+    // Step 4: Get the latest file and its path
     LatestFile = Table.FirstN(SortedTable, 1),
     LatestFilePath = FolderPath & "\" & LatestFile{0}[Name],
     
-    // Extract the sheet name from the latest file name
+    // Step 5: Extract the sheet name from the latest file name
     SheetName = Text.BeforeDelimiter(LatestFile{0}[Name], ".xlsx"),
     
-    // Import the latest Excel workbook and get the specific sheet data
+    // Step 6: Import the latest Excel workbook and get the specific sheet data
     SheetData = Excel.Workbook(File.Contents(LatestFilePath)){[Item=SheetName, Kind="Sheet"]}[Data],
-    
-#"Promoted Headers" = Table.PromoteHeaders(SheetData, [PromoteAllScalars=true]),
+    PromotedHeaders = Table.PromoteHeaders(SheetData, [PromoteAllScalars=true]),
 
-    // Add the "DateSourcedate" column with the modified date in "dd-mm-yy" format and change type
-    AddDateSourcedate = Table.AddColumn(#"Promoted Headers", "DataSourceDate", each Date.ToText(DateTime.Date(LatestFile{0}[#"Date modified"]), "dd-MM-yy"), type date)
+    // Step 7: Add the "DataSourceDate" column with the modified date in "dd-mm-yy" format and change type
+    AddDateSourcedate = Table.AddColumn(PromotedHeaders, "DataSourceDate", each Date.ToText(DateTime.Date(LatestFile{0}[#"Date modified"]), "dd-MM-yy")),
+    ChangedType = Table.TransformColumnTypes(AddDateSourcedate,{{"DataSourceDate", type date}})
 in
-    AddDateSourcedate
+    // Output the final table with the promoted headers and added "DataSourceDate" column
+    ChangedType
+
