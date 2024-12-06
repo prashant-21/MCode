@@ -17,13 +17,11 @@
 
 
 let
-    
-
     // Step 1: Retrieve the file path from the named range "FolderPath" in the current workbook
     FolderPath = Excel.CurrentWorkbook(){[Name="FolderPath"]}[Content]{0}[Column1],
     
     // Step 2: Get the list of files in the folder and filter out the current file
-    Source = Folder.Files(FolderPath),
+    Source = Table.Buffer(Folder.Files(FolderPath)),
     CurrentWorkbookName = Text.BeforeDelimiter(FolderPath, ".xlsx"),
     FilteredFiles = Table.SelectRows(Source, each Text.BeforeDelimiter([Name], ".") <> CurrentWorkbookName),
     
