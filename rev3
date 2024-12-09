@@ -1,0 +1,57 @@
+let
+    // Step 1: Retrieve the file path from the named range "FolderPath" in the current workbook
+    FolderPath = Excel.CurrentWorkbook(){[Name="FolderPath"]}[Content]{0}[Column1],
+    
+    // Step 2: Get the list of files in the folder
+    Source = Folder.Files(FolderPath),
+    
+    // Step 3: Prepare the file selection and date tracking in one step
+    ProcessedFiles = Table.AddColumn(
+        Table.Sort(
+            Table.AddColumn(Source, "Date_Modified", each DateTime.From([#"Date modified"]), type datetime),
+            {{"Date_Modified", Order.Descending}}
+        ),
+        "FileDetails", 
+        each [
+            Name = [Name],
+            ModifiedDate = [#"Date modified"],
+            FullPath = FolderPath & "\" & [Name],
+            FileExtension = Text.Lower(Text.End([Name], 4))
+        ]
+    ),
+    
+    // Step 4: Select the most recent file
+    LatestFileRecord = ProcessedFiles{0}[FileDetails],
+    
+    // Step 5: Load data based on file type
+    SheetData = 
+        if LatestFileRecord[FileExtension] = ".csv" then 
+            Csv.Document(File.Contents(LatestFileRecord[FullPath]), 
+                [Delimiter=",", Columns=10, Encoding=1252, QuoteStyle=QuoteStyle.None])
+        else if LatestFileRecord[FileExtension] = ".xlsb" then 
+            Excel.Workbook(File.Contents(LatestFileRecord[FullPath]), null, true){0}[Data]
+        else 
+            Excel.Workbook(File.Contents(LatestFileRecord[FullPath])){[Item="Sheet1", Kind="Sheet"]}[Data],
+    
+    // Step 6: Promote headers if the file is not CSV
+    PromotedHeaders = 
+        if LatestFileRecord[FileExtension] = ".csv" then 
+            SheetData 
+        else 
+            Table.PromoteHeaders(SheetData, [PromoteAllScalars=true]),
+    
+    // Step 7: Add the "DataSourceDate" column with the modified date in "dd-mm-yy" format
+    AddDateSourcedate = Table.AddColumn(
+        PromotedHeaders, 
+        "DataSourceDate", 
+        each Date.ToText(DateTime.Date(LatestFileRecord[ModifiedDate]), "dd-MM-yy")
+    ),
+    
+    // Step 8: Change column types
+    ChangedType = Table.TransformColumnTypes(
+        AddDateSourcedate,
+        {{"DataSourceDate", type date}}
+    )
+in
+    // Output the final table with the promoted headers and added "DataSourceDate" column
+    ChangedType
