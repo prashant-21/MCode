@@ -1,3 +1,6 @@
+// LatestFileDataLoader
+// This Power Query M code retrieves the latest file from a specified folder, dynamically counts the number of columns in a CSV file (if applicable), loads the data, promotes headers, and adds a "DataSourceDate" column with the file's modified date.
+
 let
     // Step 1: Retrieve the file path from the named range "FolderPath" in the current workbook
     FolderPath = Excel.CurrentWorkbook(){[Name="FolderPath"]}[Content]{0}[Column1],
@@ -26,19 +29,21 @@ let
     // Step 5: Load data based on file type
     SheetData = 
         if LatestFileRecord[FileExtension] = ".csv" then 
-            Csv.Document(File.Contents(LatestFileRecord[FullPath]), 
-                [Delimiter=",", Columns=10, Encoding=1252, QuoteStyle=QuoteStyle.None])
+            let
+                // Read the CSV content
+                CsvContent = Csv.Document(File.Contents(LatestFileRecord[FullPath]), [Delimiter=",", Encoding=1252, QuoteStyle=QuoteStyle.None]),
+                // Count the number of columns
+                ColumnCount = Table.ColumnCount(CsvContent)
+            in
+                // Load the CSV with the dynamically counted number of columns
+                Csv.Document(File.Contents(LatestFileRecord[FullPath]), [Delimiter=",", Columns=ColumnCount, Encoding=1252, QuoteStyle=QuoteStyle.None])
         else if LatestFileRecord[FileExtension] = ".xlsb" then 
             Excel.Workbook(File.Contents(LatestFileRecord[FullPath]), null, true){0}[Data]
         else 
             Excel.Workbook(File.Contents(LatestFileRecord[FullPath])){[Item="Sheet1", Kind="Sheet"]}[Data],
     
-    // Step 6: Promote headers if the file is not CSV
-    PromotedHeaders = 
-        if LatestFileRecord[FileExtension] = ".csv" then 
-            SheetData 
-        else 
-            Table.PromoteHeaders(SheetData, [PromoteAllScalars=true]),
+    // Step 6: Promote headers for all file types
+    PromotedHeaders = Table.PromoteHeaders(SheetData, [PromoteAllScalars=true]),
     
     // Step 7: Add the "DataSourceDate" column with the modified date in "dd-mm-yy" format
     AddDateSourcedate = Table.AddColumn(
