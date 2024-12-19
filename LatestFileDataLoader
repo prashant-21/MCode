@@ -26,6 +26,9 @@ let
     // Step 4: Select the most recent file
     LatestFileRecord = ProcessedFiles{0}[FileDetails],
     
+    // Variable for the sheet name
+    SheetName = Text.BeforeDelimiter(LatestFileRecord[Name], "."),
+    
     // Step 5: Load data based on file type
     SheetData = 
         if LatestFileRecord[FileExtension] = ".csv" then 
@@ -40,7 +43,7 @@ let
         else if LatestFileRecord[FileExtension] = ".xlsb" then 
             Excel.Workbook(File.Contents(LatestFileRecord[FullPath]), null, true){0}[Data]
         else 
-            Excel.Workbook(File.Contents(LatestFileRecord[FullPath])){[Item="Sheet1", Kind="Sheet"]}[Data],
+            Excel.Workbook(File.Contents(LatestFileRecord[FullPath])){[Item=SheetName, Kind="Sheet"]}[Data],
     
     // Step 6: Promote headers for all file types
     PromotedHeaders = Table.PromoteHeaders(SheetData, [PromoteAllScalars=true]),
@@ -60,3 +63,4 @@ let
 in
     // Output the final table with the promoted headers and added "DataSourceDate" column
     ChangedType
+
