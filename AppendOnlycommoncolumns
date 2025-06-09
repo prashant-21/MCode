@@ -1,0 +1,24 @@
+let
+    // Define the tables (Replace with actual table references)
+    Table1 = Table.FromRecords({
+        [ID=1, Name="John", Age=30, City="NY", Country="USA", Salary=50000, Dept="HR", JoiningDate=#date(2020,1,1), Status="Active", Score=85],
+        [ID=2, Name="Alice", Age=28, City="LA", Country="USA", Salary=60000, Dept="IT", JoiningDate=#date(2019,5,10), Status="Active", Score=90]
+    }),
+
+    Table2 = Table.FromRecords({
+        [EmpID=101, Name="Bob", Age=35, Location="SF", Country="USA", Salary=70000, Team="Sales", HireDate=#date(2018,7,15), Status="Active", Score=88, Bonus=5000, Grade="A"],
+        [EmpID=102, Name="Carol", Age=32, Location="TX", Country="USA", Salary=65000, Team="IT", HireDate=#date(2021,3,20), Status="Active", Score=92, Bonus=4000, Grade="B"]
+    }),
+
+    // Find common columns
+    CommonColumns = List.Intersect({Table.ColumnNames(Table1), Table.ColumnNames(Table2)}),
+
+    // Select only common columns
+    FilteredTable1 = Table.SelectColumns(Table1, CommonColumns),
+    FilteredTable2 = Table.SelectColumns(Table2, CommonColumns),
+
+    // Append the filtered tables
+    AppendedTable = Table.Combine({FilteredTable1, FilteredTable2})
+    
+in
+    AppendedTable
